@@ -14,8 +14,6 @@ Implementation of the optimal routing protocol for quantum networks based on ["O
 ## Quick Start
 ```bash
 # Development (local)
-git clone -b develop https://github.com/your-repo/quantum-routing.git
-cd quantum-routing
 pip install -r requirements.txt
 python quantum_network.py
 
