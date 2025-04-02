@@ -19,4 +19,4 @@ python quantum_network.py
 
 # Production (Docker)
 docker build -t quantum-routing .
-docker run --rm quantum-routing
+docker run --rm quantum-routing .
