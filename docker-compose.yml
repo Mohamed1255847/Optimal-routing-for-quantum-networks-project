@@ -1,0 +1,6 @@
+version: '3.8'
+services:
+  quantum-routing:
+    build: .
+    container_name: quantum-routing-draft
+    restart: unless-stopped
