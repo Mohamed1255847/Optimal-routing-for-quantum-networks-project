@@ -9,7 +9,7 @@ from collections import defaultdict
 class QuantumNetwork:
     def __init__(self):
         # Physical parameters (default values from the paper)
-        self.p_ht = 0.53       # Atom-photon entanglement probability
+        self.p_ht = 0.53        # Atom-photon entanglement probability
         self.v_h = 0.8          # Herald detector efficiency
         self.v_t = 0.8          # Telecom detector efficiency
         self.v_o = 0.39         # Optical BSM efficiency
@@ -24,65 +24,82 @@ class QuantumNetwork:
         self.tau_a = 10e-6      # Atomic BSM duration (10 μs)
         self.T_ch = 10e-3       # Quantum memory coherence time (10 ms)
 
-    # =============================================
-    # Link Entanglement Rate (Eq. 8 in the paper)
-    # =============================================
-    def link_entanglement_rate(self, d_ij):
-        # Probability of successful link entanglement (Eq. 2)
-        p_ij = 0.5 * self.v_o * (self.p_ht * self.v_h * self.v_t)**2 * np.exp(-d_ij / self.L0)
+    def get_T_c(self, links):
+        return sum(l['T_ij_c'] for l in links)
 
-        # Time for successful attempt (Eq. 4-5)
-        tau_ij = self.tau_t + (d_ij / (2 * self.c_f)) + self.tau_o + (d_ij / (2 * self.c_f))
-        T_ij_s = self.tau_p + max(self.tau_h, tau_ij)
-
-        # Time for failed attempt (Eq. 6)
-        T_ij_f = self.tau_p + max(self.tau_h, tau_ij, self.tau_d)
-
-        # Average time for entanglement generation (Eq. 7)
-        T_ij = ((1 - p_ij) * T_ij_f + p_ij * T_ij_s) / p_ij
-
-        # Link entanglement rate (Eq. 8)
-        if self.T_ch < tau_ij:
-            return 0.0
+    def recT(self, links):
+        n = len(links)
+        if n == 1:
+            return links[0]['T_ij']
         else:
-            return 1.0 / T_ij
+            k = n // 2
+            left_links = links[:k]
+            right_links = links[k:]
+            T_r_left = self.recT(left_links)
+            T_r_right = self.recT(right_links)
+            T = max(T_r_left, T_r_right)
+            T_c = max(self.get_T_c(left_links), self.get_T_c(right_links))
+            T_r_ab = (T + self.tau_a + T_c) / self.v_a
+            return T_r_ab
+
+    def recTau(self, links):
+        n = len(links)
+        if n == 1:
+            return links[0]['T_ij_s']
+        else:
+            k = n // 2
+            left_links = links[:k]
+            right_links = links[k:]
+            tau_r_left = self.recTau(left_links)
+            tau_r_right = self.recTau(right_links)
+            tau = max(tau_r_left, tau_r_right)
+            T_c = max(self.get_T_c(left_links), self.get_T_c(right_links))
+            tau_r_ab = tau + self.tau_a + T_c
+            return tau_r_ab
 
     # =============================================
-    # End-to-End Entanglement Rate (Eq. 11)
+    # End-to-End Entanglement Rate (Algorithm 1 in paper)
     # =============================================
     def end_to_end_rate(self, path, distances):
-        if len(path) == 2:
-            # Direct link case
-            d = distances[path[0]][path[1]]
-            return self.link_entanglement_rate(d)
+        #Split path into separate links
+        links = []
+        for i in range(len(path) - 1):
+            link = {}
+            link['src'] = path[i]
+            link['dst'] = path[i+1]
+            link['dist'] = distances[path[i]][path[i+1]]
+            p_ij = 0.5 * self.v_o * (self.p_ht * self.v_h * self.v_t)**2 * np.exp(-link['dist'] / self.L0)
+            T_ij_c = link['dist'] / (2 * self.c_f)
+            tau_ij = self.tau_t + T_ij_c * 2 + self.tau_o
+            T_ij_s = self.tau_p + max(self.tau_h, tau_ij)
+            T_ij_f = self.tau_p + max(self.tau_h, tau_ij, self.tau_d)
+            T_ij = ((1 - p_ij) * T_ij_f + p_ij * T_ij_s) / p_ij
+            link['tau_ij'] = tau_ij
+            link['T_ij_c'] = T_ij_c
+            link['T_ij_s'] = T_ij_s
+            link['T_ij_f'] = T_ij_f
+            link['T_ij'] = T_ij
+            links.append(link)
+        n = len(links)
+
+        # Calculate the end-to-end entanglement rate
+        if n == 1 and links[0]['tau_ij'] < self.T_ch:
+            return 1.0 / links[0]['T_ij']
         else:
-            # Recursive case (split path into sub-paths)
-            k = len(path) // 2
-            left_path = path[:k+1]
-            right_path = path[k:]
-
-            # Recursively compute rates for sub-paths
-            rate_left = self.end_to_end_rate(left_path, distances)
-            rate_right = self.end_to_end_rate(right_path, distances)
-
-            # If either sub-path has zero rate, the whole path fails
-            if rate_left == 0 or rate_right == 0:
-                return 0.0
-
-            # Time for entanglement swapping (Eq. 10)
-            T_left = 1.0 / rate_left
-            T_right = 1.0 / rate_right
-            T_swap = (max(T_left, T_right) + self.tau_a) / self.v_a
-
-            # Check decoherence constraint (Eq. 11)
-            tau_left = T_left
-            tau_right = T_right
-            tau_total = max(tau_left, tau_right) + self.tau_a
-
-            if self.T_ch < tau_total:
-                return 0.0
-            else:
-                return 1.0 / T_swap
+            k = n // 2
+            left_links = links[:k]
+            right_links = links[k:]
+            T_r_left = self.recT(left_links)
+            T_r_right = self.recT(right_links)
+            T = max(T_r_left, T_r_right)
+            T_c = max(self.get_T_c(left_links), self.get_T_c(right_links))
+            T_r_ij = (T + self.tau_a + T_c) / self.v_a
+            tau_r_left = self.recTau(left_links)
+            tau_r_right = self.recTau(right_links)
+            tau = max(tau_r_left, tau_r_right)
+            tau_r_ij = tau + self.tau_a + T_c
+            if tau_r_ij - min([l['T_ij_s'] - l['tau_ij'] for l in links]) <= self.T_ch:
+                return 1 / T_r_ij
 
 # =============================================
 # Optimal Path Selection (Algorithm 3 in paper)
@@ -101,10 +118,11 @@ def find_optimal_path(network, nodes, distances, startPoint, endPoint):
     best_rate = 0.0
 
     for path in all_paths:
-        rate = network.end_to_end_rate(path, distances)
-        if rate > best_rate and path[0] == startPoint and path[-1] == endPoint:
-            best_rate = rate
-            best_path = path
+        if path[0] == startPoint and path[-1] == endPoint:
+            rate = network.end_to_end_rate(path, distances)
+            if rate > best_rate:
+                best_rate = rate
+                best_path = path
 
     return best_path, best_rate
 
@@ -143,9 +161,9 @@ if __name__ == "__main__":
     y_axis = []
     for x in range(150):
         distances = {
-            "v1": {"v2": 5e3},
+            "v1": {"v2": x*1e3},
             "v2": {"v1": x*1e3, "v3": x*1e3},
-            "v3": {"v2": 5e3}
+            "v3": {"v2": x*1e3}
         }
     
         # Initialize the quantum network
@@ -159,6 +177,7 @@ if __name__ == "__main__":
     #Plot results
     plt.plot(x_axis, y_axis)
     plt.xlabel('Route length (km)')
+    plt.yscale('log')
     plt.ylabel('Entanglement rate (entanglements/s)')
     plt.title('Expected entanglement rate')
     plt.savefig('entanglement_rate_plot.png')
