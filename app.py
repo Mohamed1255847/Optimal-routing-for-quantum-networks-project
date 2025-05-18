@@ -149,14 +149,12 @@ def enumerate_paths(src, dst, nodes, distances, visited=None):
 if __name__ == "__main__":
     # Example network topology (from Fig. 7 in the paper)
     nodes = ["v1", "v2", "v3"]
-    '''
     distances = {
         "v1": {"v2": 5e3},  # 5 km
         "v2": {"v1": 5e3, "v3": 2e3, "vj": 10e3},  # 5 km and 10 km
         "v3": {"v2": 2e3, "vj": 1e3},
         "vj": {"v2": 10e3, "v3": 1e3}
     }
-    '''
     x_axis = []
     y_axis = []
     for x in range(150):
@@ -183,5 +181,5 @@ if __name__ == "__main__":
     plt.savefig('entanglement_rate_plot.png')
     print("Plot saved as entanglement_rate_plot.png")
 
-    #print(f"Optimal path: {best_path}")
-    #print(f"Entanglement rate: {best_rate:.2f} entanglements/second")
+    print(f"Optimal path: {best_path}")
+    print(f"Entanglement rate: {best_rate:.2f} entanglements/second")
