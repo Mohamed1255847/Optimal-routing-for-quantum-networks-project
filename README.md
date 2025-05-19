@@ -60,12 +60,7 @@ This project contributes to these challenges by simulating quantum network perfo
 ---
 
 ## References and Further Reading
-
-- [A Strategic Vision for America’s Quantum Networks](https://www.whitehouse.gov/wp-content/uploads/2017/12/A-Strategic-Vision-for-Americas-Quantum-Networks-Feb-2020.pdf)  
-- DOE Quantum Internet Blueprint Workshop Report (2020)  
-- [Quantum Networking: Findings and Recommendations](https://www.quantum.gov/wp-content/uploads/2024/09/NQIAC-Report-Quantum-Networking.pdf)  
-- [Quantum Network Control and Routing Algorithms](https://arxiv.org/abs/2407.19899)  
-- [Quantum NETwork: from theory to practice (arXiv 2020)](https://arxiv.org/abs/2009.12000)  
+[Optimal Routing for Quantum Networks](https://www.researchgate.net/publication/320665252_Optimal_Routing_for_Quantum_Networks)
 
 ---
 
