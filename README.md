@@ -1,5 +1,14 @@
 # Optimal-routing-for-quantum-networks-project
 
+## how to run the project
+### using docker 
+`docker run --name quantum-router-container quantam-optimal-router`
+### using local ENV 
+`python3 app.py`
+
+### or
+`python app.py`
+
 ## Overview
 
 This repository contains code and analysis related to **optimal routing for quantum networks**. It explores how to maximize end-to-end entanglement rates in quantum communication networks by studying different repeater placements and routing strategies.
